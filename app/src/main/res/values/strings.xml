@@ -4,5 +4,6 @@
     <string name="or_text">or</string>
     <string name="clear_button">CLEAR LOGS</string>
     <string name="execute_button">RUN COMMAND</string>
-    <string name="loading_text">Warming up..</string>
+    <string name="loading_text">Connecting..</string>
+    <string name="not_connected">Device is not connected to Arduino!</string>
 </resources>

@@ -6,7 +6,10 @@ import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -20,6 +23,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -44,6 +48,7 @@ public class MainActivity extends AppCompatActivity {
     CheckBox dropdown_chk, manual_chk;
     public Handler mHandler;
     ProgressDialog loading_dialog;
+    BroadcastReceiver mBroadcastReceiver1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,13 +66,6 @@ public class MainActivity extends AppCompatActivity {
         dropdown_chk = findViewById(R.id.chkbox_dropdown);
         manual_chk = findViewById(R.id.chkbox_manual);
 
-        //opens loading dialog
-        loading_dialog = new ProgressDialog(MainActivity.this);
-        loading_dialog.setMessage(getString(R.string.loading_text));
-        loading_dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-        loading_dialog.show();
-        loading_dialog.setCancelable(false);
-
         //load commands into spinner
         String[] items = new String[]{
                 "2",
@@ -75,13 +73,14 @@ public class MainActivity extends AppCompatActivity {
                 "4",
                 "5",
                 "b",
-                "a"
+                "a",
+                "c"
         };
 
         //adapter for dropdown to show it in view
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, items);
-        command_list.setAdapter(adapter);
 
+        command_list.setAdapter(adapter);
         command_label.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -126,26 +125,32 @@ public class MainActivity extends AppCompatActivity {
         execute_command_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Log.i("[BLUETOOTH]", "Attempting to send data");
-
-                //if we have connection to the bluetoothmodule
-                if (mmSocket.isConnected() && btt != null) {
+                if(btt.isAlive()){
+                    Log.i("[BLUETOOTH]", "Attempting to send data");
+//                Log.e("name", btt.isAlive()+" ");
+                    //if we have connection to the bluetoothmodule
+                    if (mmSocket.isConnected() && btt != null) {
                         //if manual command mode is selected
                         if(manual_chk.isChecked()){
                             //reads entered command
                             String sendtxt = command_label.getText().toString();
                             Log.i("[BLUETOOTH]", "Command:"+sendtxt);
                             btt.write(sendtxt.getBytes());
-                        //if dropdown commands checkbox is checked
+                            //if dropdown commands checkbox is checked
                         }else if(dropdown_chk.isChecked()){
                             //gets items string from selected dropdown item
                             String sendtxt = command_list.getSelectedItem().toString();
                             Log.i("[BLUETOOTH]", "Command:"+sendtxt);
                             btt.write(sendtxt.getBytes());
                         }
-                } else {
-                    Toast.makeText(MainActivity.this, "Something went wrong", Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(MainActivity.this, "Something went wrong", Toast.LENGTH_LONG).show();
+                    }
+                }else{
+                    //tries to reconnect if BT conn is lost on execute
+                    connectToMatrix();
                 }
+
             }
         });
 
@@ -156,18 +161,42 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        //to eliminate white screen on bootup for few seconds
+        connectToMatrix();
 
-        bta = BluetoothAdapter.getDefaultAdapter();
+        //The BroadcastReceiver that listens for bluetooth broadcasts
+        mBroadcastReceiver1 = new BroadcastReceiver() {
 
-        //if bluetooth is not enabled then create Intent for user to turn it on
-        if(!bta.isEnabled()){
-            Intent enableBTIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableBTIntent, REQUEST_ENABLE_BT);
-        }else{
-            initiateBluetoothProcess();
-        }
-        //clos eloading
-        loading_dialog.dismiss();
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                final String action = intent.getAction();
+
+                if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
+                    final int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
+                    switch(state) {
+                        case BluetoothAdapter.STATE_OFF:
+                            connectToMatrix();
+                            break;
+                        case BluetoothAdapter.STATE_TURNING_OFF:
+                            connectToMatrix();
+                            break;
+                    }
+                }
+            }
+        };
+
+        IntentFilter filter1 = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
+        registerReceiver(mBroadcastReceiver1, filter1);
+
+        generateButtonGrid();
+
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        unregisterReceiver(mBroadcastReceiver1);
     }
 
     @Override
@@ -177,6 +206,74 @@ public class MainActivity extends AppCompatActivity {
         if(resultCode == RESULT_OK && requestCode == REQUEST_ENABLE_BT){
             initiateBluetoothProcess();
         }
+    }
+
+    public void generateButtonGrid(){
+        //the layout on which you are working
+        LinearLayout linear = (LinearLayout) findViewById(R.id.buttongrid_view);
+
+        Button grid[][] = new Button[10][10];
+
+        //for each row
+        for(int i = 9; i >= 0; i--){
+            //create row layout
+            LinearLayout lin = new LinearLayout(MainActivity.this);
+            lin.setOrientation(LinearLayout.HORIZONTAL);
+            //for each column
+            for(int j = 0; j < grid[i].length ; j++) {
+                //button id
+                final String btn_id = (i*10)+j+"";
+
+                //create button
+                Button btn = new Button(MainActivity.this);
+                btn.setPadding(0,0,0,0);
+
+                //each button text contains button id
+                btn.setText(btn_id);
+
+                //each button listener
+                btn.setOnClickListener(new View.OnClickListener() {
+                    public void onClick(View view) {
+                        String sendtxt = btn_id+",250,0,0,0";
+                        Log.i("[BLUETOOTH]", "Command:"+sendtxt);
+                        //draw color
+                        btt.write(sendtxt.getBytes());
+//                        btn.setBackgroundColor(Color.parseColor("#d1431b"));
+                    }
+                });
+                //add button to array
+                grid[i][j] = btn;
+                //add button to rows view
+                lin.addView(grid[i][j]);
+            }
+            //add each row into certical list view
+            linear.addView(lin);
+        }
+    }
+
+    public void connectToMatrix(){
+        //to eliminate white screen on bootup for few seconds
+        new Handler().postDelayed(new Runnable() {
+                public void run() {
+                //gets BT adapter
+                bta = BluetoothAdapter.getDefaultAdapter();
+
+                //if bluetooth is not enabled then create Intent for user to turn it on
+                if(!bta.isEnabled()){
+                    Intent enableBTIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                    startActivityForResult(enableBTIntent, REQUEST_ENABLE_BT);
+                }else{
+                    //opens loading dialog
+                    loading_dialog = new ProgressDialog(MainActivity.this);
+                    loading_dialog.setMessage(getString(R.string.loading_text));
+                    loading_dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+                    loading_dialog.show();
+                    loading_dialog.setCancelable(false);
+                    initiateBluetoothProcess();
+                    loading_dialog.dismiss();
+                }
+            }
+        }, 300);
     }
 
     public void initiateBluetoothProcess(){
@@ -194,7 +291,11 @@ public class MainActivity extends AppCompatActivity {
                 mmSocket.connect();
                 Log.i("[BLUETOOTH]","Connected to: "+mmDevice.getName());
             }catch(IOException e){
-                try{mmSocket.close();}catch(IOException c){return;}
+                try{
+                    mmSocket.close();
+                }catch(IOException c){
+                    return;
+                }
             }
 
             Log.i("[BLUETOOTH]", "Creating handler");
@@ -217,9 +318,6 @@ public class MainActivity extends AppCompatActivity {
             Log.i("[BLUETOOTH]", "Creating and running Thread");
             btt = new ConnectedThread(mmSocket,mHandler);
             btt.start();
-
-
         }
     }
-
 }
