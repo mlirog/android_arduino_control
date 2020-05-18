@@ -1,6 +1,7 @@
 package com.example.maris_tolstovs;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
@@ -8,8 +9,10 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -17,16 +20,24 @@ import android.os.Message;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.flask.colorpicker.ColorPickerView;
+import com.flask.colorpicker.OnColorSelectedListener;
+import com.flask.colorpicker.builder.ColorPickerClickListener;
+import com.flask.colorpicker.builder.ColorPickerDialogBuilder;
+import com.google.android.material.snackbar.Snackbar;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -41,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
     BluetoothSocket mmSocket;
     BluetoothDevice mmDevice;
     ConnectedThread btt = null;
-    Button clear_logs, execute_command_button;
+    Button clear_logs, execute_command_button, colorpicker;
     EditText command_label;
     TextView response;
     Spinner command_list;
@@ -49,6 +60,7 @@ public class MainActivity extends AppCompatActivity {
     public Handler mHandler;
     ProgressDialog loading_dialog;
     BroadcastReceiver mBroadcastReceiver1;
+    Snackbar snack_not_connected;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,6 +77,7 @@ public class MainActivity extends AppCompatActivity {
         command_list = findViewById(R.id.command_list);
         dropdown_chk = findViewById(R.id.chkbox_dropdown);
         manual_chk = findViewById(R.id.chkbox_manual);
+        colorpicker = findViewById(R.id.color_picker);
 
         //load commands into spinner
         String[] items = new String[]{
@@ -127,16 +140,19 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 if(btt.isAlive()){
                     Log.i("[BLUETOOTH]", "Attempting to send data");
-//                Log.e("name", btt.isAlive()+" ");
+                    
                     //if we have connection to the bluetoothmodule
                     if (mmSocket.isConnected() && btt != null) {
+
                         //if manual command mode is selected
                         if(manual_chk.isChecked()){
+
                             //reads entered command
                             String sendtxt = command_label.getText().toString();
                             Log.i("[BLUETOOTH]", "Command:"+sendtxt);
                             btt.write(sendtxt.getBytes());
-                            //if dropdown commands checkbox is checked
+
+                        //if dropdown commands checkbox is checked
                         }else if(dropdown_chk.isChecked()){
                             //gets items string from selected dropdown item
                             String sendtxt = command_list.getSelectedItem().toString();
@@ -153,6 +169,39 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+
+        //pen colorpicker
+        colorpicker.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                ColorPickerDialogBuilder
+                        .with(MainActivity.this)
+                        .wheelType(ColorPickerView.WHEEL_TYPE.FLOWER)
+                        .density(12)
+                        .setOnColorSelectedListener(new OnColorSelectedListener() {
+                            @Override
+                            public void onColorSelected(int selectedColor) {
+                            }
+                        })
+                        .setPositiveButton("ok", new ColorPickerClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int selectedColor, Integer[] allColors) {
+                                String val = Color.red(selectedColor)+","+Color.green(selectedColor)+","+Color.blue(selectedColor)+","+Color.alpha(selectedColor);
+                              Log.e("[COLOR_SELECTOR]", "Selected color:"+ val);
+
+                            }
+                        })
+                        .setNegativeButton("cancel", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                            }
+                        })
+                        .build()
+                        .show();
+
+            }
+        });
+
 
         clear_logs.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -175,9 +224,6 @@ public class MainActivity extends AppCompatActivity {
                     final int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
                     switch(state) {
                         case BluetoothAdapter.STATE_OFF:
-                            connectToMatrix();
-                            break;
-                        case BluetoothAdapter.STATE_TURNING_OFF:
                             connectToMatrix();
                             break;
                     }
@@ -219,6 +265,7 @@ public class MainActivity extends AppCompatActivity {
             //create row layout
             LinearLayout lin = new LinearLayout(MainActivity.this);
             lin.setOrientation(LinearLayout.HORIZONTAL);
+
             //for each column
             for(int j = 0; j < grid[i].length ; j++) {
                 //button id
@@ -226,13 +273,19 @@ public class MainActivity extends AppCompatActivity {
 
                 //create button
                 Button btn = new Button(MainActivity.this);
-                btn.setPadding(0,0,0,0);
+                //add button to array
+                grid[i][j] = btn;
+                //add button to rows view
+                lin.addView(grid[i][j]);
 
+                grid[i][j].setMinWidth(0);
+                grid[i][j].setMinHeight(0);
+                grid[i][j].setWidth(0);
                 //each button text contains button id
-                btn.setText(btn_id);
+                grid[i][j].setText(btn_id);
 
                 //each button listener
-                btn.setOnClickListener(new View.OnClickListener() {
+                grid[i][j].setOnClickListener(new View.OnClickListener() {
                     public void onClick(View view) {
                         String sendtxt = btn_id+",250,0,0,0";
                         Log.i("[BLUETOOTH]", "Command:"+sendtxt);
@@ -241,10 +294,6 @@ public class MainActivity extends AppCompatActivity {
 //                        btn.setBackgroundColor(Color.parseColor("#d1431b"));
                     }
                 });
-                //add button to array
-                grid[i][j] = btn;
-                //add button to rows view
-                lin.addView(grid[i][j]);
             }
             //add each row into certical list view
             linear.addView(lin);
@@ -259,18 +308,11 @@ public class MainActivity extends AppCompatActivity {
                 bta = BluetoothAdapter.getDefaultAdapter();
 
                 //if bluetooth is not enabled then create Intent for user to turn it on
-                if(!bta.isEnabled()){
+                if(bta == null || !bta.isEnabled()){
                     Intent enableBTIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
                     startActivityForResult(enableBTIntent, REQUEST_ENABLE_BT);
                 }else{
-                    //opens loading dialog
-                    loading_dialog = new ProgressDialog(MainActivity.this);
-                    loading_dialog.setMessage(getString(R.string.loading_text));
-                    loading_dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-                    loading_dialog.show();
-                    loading_dialog.setCancelable(false);
                     initiateBluetoothProcess();
-                    loading_dialog.dismiss();
                 }
             }
         }, 300);
@@ -279,45 +321,79 @@ public class MainActivity extends AppCompatActivity {
     public void initiateBluetoothProcess(){
 
         if(bta.isEnabled()){
+            //opens loading dialog
+            loading_dialog = new ProgressDialog(MainActivity.this);
+            loading_dialog.setMessage(getString(R.string.loading_text));
+            loading_dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+            loading_dialog.show();
+            loading_dialog.setCancelable(false);
 
-            //attempt to connect to bluetooth module
-            BluetoothSocket tmp = null;
-            mmDevice = bta.getRemoteDevice(MODULE_MAC);
+            //runnable stops app from freezing
+            new Handler().postDelayed(new Runnable() {
+                  public void run() {
+                      //attempt to connect to bluetooth module
+                      BluetoothSocket tmp = null;
+                      mmDevice = bta.getRemoteDevice(MODULE_MAC);
 
-            //create socket
-            try {
-                tmp = mmDevice.createRfcommSocketToServiceRecord(MY_UUID);
-                mmSocket = tmp;
-                mmSocket.connect();
-                Log.i("[BLUETOOTH]","Connected to: "+mmDevice.getName());
-            }catch(IOException e){
-                try{
-                    mmSocket.close();
-                }catch(IOException c){
-                    return;
-                }
-            }
+                      //create socket
+                      try {
+                          tmp = mmDevice.createRfcommSocketToServiceRecord(MY_UUID);
+                          mmSocket = tmp;
+                          mmSocket.connect();
 
-            Log.i("[BLUETOOTH]", "Creating handler");
-            mHandler = new Handler(Looper.getMainLooper()){
-                @Override
-                public void handleMessage(Message msg) {
-                    //super.handleMessage(msg);
-                    if(msg.what == ConnectedThread.RESPONSE_MESSAGE){
-                        String txt = (String)msg.obj;
-                        if(response.getText().toString().length() >= 30){
-                            response.setText("");
-                            response.append(txt);
-                        }else{
-                            response.append("\n" + txt);
-                        }
-                    }
-                }
-            };
+                          //closes snackbar on successful connect
+                          snack_not_connected.dismiss();
+                          Log.i("[BLUETOOTH]","Connected to: "+mmDevice.getName());
+                      }catch(IOException e){
+                          try{
+                              mmSocket.close();
 
-            Log.i("[BLUETOOTH]", "Creating and running Thread");
-            btt = new ConnectedThread(mmSocket,mHandler);
-            btt.start();
+                              //if not connected snackbar on top
+                              snack_not_connected = Snackbar.make(findViewById(R.id.main_view), getString(R.string.not_connected), Snackbar.LENGTH_INDEFINITE);
+                              View view = snack_not_connected.getView();
+                              FrameLayout.LayoutParams params =(FrameLayout.LayoutParams)view.getLayoutParams();
+                              params.gravity = Gravity.TOP;
+                              view.setLayoutParams(params);
+                              snack_not_connected.setAction("RECONNECT", new View.OnClickListener() {
+                                  @Override
+                                  public void onClick(View view) {
+                                      //reconnect
+                                      connectToMatrix();
+                                  }
+                              });
+                              snack_not_connected.show();
+                          }catch(IOException c){
+                              return;
+                          }
+                      }
+
+                      Log.i("[BLUETOOTH]", "Creating handler");
+                      mHandler = new Handler(Looper.getMainLooper()){
+                          @Override
+                          public void handleMessage(Message msg) {
+                              //super.handleMessage(msg);
+                              if(msg.what == ConnectedThread.RESPONSE_MESSAGE){
+                                  String txt = (String)msg.obj;
+                                  if(response.getText().toString().length() >= 40){
+                                      response.setText("");
+                                      response.append(txt);
+                                  }else{
+                                      response.append("\n" + txt);
+                                  }
+                              }
+                          }
+                      };
+
+                      Log.i("[BLUETOOTH]", "Creating and running Thread");
+                      btt = new ConnectedThread(mmSocket,mHandler);
+                      btt.start();
+
+                      //close loading dialog
+                      loading_dialog.dismiss();
+                  }
+              },100);
+
+
         }
     }
 }

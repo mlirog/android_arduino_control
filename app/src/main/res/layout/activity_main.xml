@@ -79,11 +79,12 @@
 
                         <Spinner
                             android:id="@+id/command_list"
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:paddingLeft="@dimen/button_margins"
                             android:paddingRight="@dimen/button_margins"
                             app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent"
                             app:layout_constraintStart_toEndOf="@+id/chkbox_dropdown"
                             app:layout_constraintTop_toTopOf="parent" />
 
@@ -140,6 +141,7 @@
                         app:layout_constraintTop_toBottomOf="@+id/constraintLayout3" />
 
                     <HorizontalScrollView
+                        android:id="@+id/matrix_grid_scrollview"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         app:layout_constraintBottom_toBottomOf="parent"
@@ -153,6 +155,16 @@
                             android:layout_height="wrap_content"
                             android:orientation="vertical" />
                     </HorizontalScrollView>
+
+                    <Button
+                        android:id="@+id/color_picker"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="PICK COLOR"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintLeft_toLeftOf="parent"
+                        app:layout_constraintRight_toRightOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/matrix_grid_scrollview" />
 
                 </androidx.constraintlayout.widget.ConstraintLayout>
 
