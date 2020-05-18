@@ -5,5 +5,26 @@
     <string name="clear_button">CLEAR LOGS</string>
     <string name="execute_button">RUN COMMAND</string>
     <string name="loading_text">Connecting..</string>
+    <string name="loading_anim">Drawing animation..</string>
     <string name="not_connected">Device is not connected to Arduino!</string>
+
+
+    <string-array
+        name="draw_heart">
+        <item>2</item>
+        <item>c</item>
+        <item>14,255,0,0,0</item>
+        <item>25,255,0,0,0</item>
+        <item>35,255,0,0,0</item>
+        <item>46,255,0,0,0</item>
+        <item>56,255,0,0,0</item>
+        <item>65,255,0,0,0</item>
+        <item>54,255,0,0,0</item>
+        <item>63,255,0,0,0</item>
+        <item>52,255,0,0,0</item>
+        <item>42,255,0,0,0</item>
+        <item>33,255,0,0,0</item>
+        <item>23,255,0,0,0</item>
+    </string-array>
+
 </resources>

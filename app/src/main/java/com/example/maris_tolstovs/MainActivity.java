@@ -61,6 +61,10 @@ public class MainActivity extends AppCompatActivity {
     ProgressDialog loading_dialog;
     BroadcastReceiver mBroadcastReceiver1;
     Snackbar snack_not_connected;
+    int colorpicker_color;
+
+    //copy 10x10 matrix but by buttons
+    Button grid[][] = new Button[10][10];
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,13 +85,14 @@ public class MainActivity extends AppCompatActivity {
 
         //load commands into spinner
         String[] items = new String[]{
-                "2",
+                "enter drawing mode",
                 "3",
                 "4",
                 "5",
                 "b",
                 "a",
-                "c"
+                "clear grid",
+                "draw heart"
         };
 
         //adapter for dropdown to show it in view
@@ -140,7 +145,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 if(btt.isAlive()){
                     Log.i("[BLUETOOTH]", "Attempting to send data");
-                    
+
                     //if we have connection to the bluetoothmodule
                     if (mmSocket.isConnected() && btt != null) {
 
@@ -154,10 +159,31 @@ public class MainActivity extends AppCompatActivity {
 
                         //if dropdown commands checkbox is checked
                         }else if(dropdown_chk.isChecked()){
-                            //gets items string from selected dropdown item
-                            String sendtxt = command_list.getSelectedItem().toString();
-                            Log.i("[BLUETOOTH]", "Command:"+sendtxt);
-                            btt.write(sendtxt.getBytes());
+                            switch (command_list.getSelectedItem().toString()){
+                                case "draw heart":
+                                    drawAnmation(getResources().getStringArray(R.array.draw_heart));
+                                    break;
+                                case "enter drawing mode" :
+                                    //repaint every button to grey
+                                    clearButtonBackgrounds();
+                                    //calls drawing command
+                                    Log.i("[BLUETOOTH]", "Command: 2");
+                                    btt.write("2".getBytes());
+                                    break;
+
+                                case "clear grid" :
+                                    //repaint every button to grey
+                                    clearButtonBackgrounds();
+                                    //calls clear command
+                                    Log.i("[BLUETOOTH]", "Command: c");
+                                    btt.write("c".getBytes());
+                                    break;
+                                default:
+                                    //gets items string from selected dropdown item
+                                    String sendtxt = command_list.getSelectedItem().toString();
+                                    Log.i("[BLUETOOTH]", "Command:"+sendtxt);
+                                    btt.write(sendtxt.getBytes());
+                            }
                         }
                     } else {
                         Toast.makeText(MainActivity.this, "Something went wrong", Toast.LENGTH_LONG).show();
@@ -166,7 +192,6 @@ public class MainActivity extends AppCompatActivity {
                     //tries to reconnect if BT conn is lost on execute
                     connectToMatrix();
                 }
-
             }
         });
 
@@ -176,8 +201,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 ColorPickerDialogBuilder
                         .with(MainActivity.this)
-                        .wheelType(ColorPickerView.WHEEL_TYPE.FLOWER)
-                        .density(12)
+                        .wheelType(ColorPickerView.WHEEL_TYPE.CIRCLE)
                         .setOnColorSelectedListener(new OnColorSelectedListener() {
                             @Override
                             public void onColorSelected(int selectedColor) {
@@ -186,14 +210,15 @@ public class MainActivity extends AppCompatActivity {
                         .setPositiveButton("ok", new ColorPickerClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int selectedColor, Integer[] allColors) {
-                                String val = Color.red(selectedColor)+","+Color.green(selectedColor)+","+Color.blue(selectedColor)+","+Color.alpha(selectedColor);
-                              Log.e("[COLOR_SELECTOR]", "Selected color:"+ val);
-
+//                                String val = Color.red(selectedColor)+","+Color.green(selectedColor)+","+Color.blue(selectedColor)+","+Color.alpha(selectedColor);
+                                Log.e("[COLOR_SELECTOR]", "Selected color:"+ selectedColor);
+                                colorpicker_color = selectedColor;
                             }
                         })
                         .setNegativeButton("cancel", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
+                                //
                             }
                         })
                         .build()
@@ -258,8 +283,6 @@ public class MainActivity extends AppCompatActivity {
         //the layout on which you are working
         LinearLayout linear = (LinearLayout) findViewById(R.id.buttongrid_view);
 
-        Button grid[][] = new Button[10][10];
-
         //for each row
         for(int i = 9; i >= 0; i--){
             //create row layout
@@ -272,28 +295,37 @@ public class MainActivity extends AppCompatActivity {
                 final String btn_id = (i*10)+j+"";
 
                 //create button
-                Button btn = new Button(MainActivity.this);
-                //add button to array
-                grid[i][j] = btn;
-                //add button to rows view
-                lin.addView(grid[i][j]);
+                final Button btn = new Button(MainActivity.this);
 
-                grid[i][j].setMinWidth(0);
-                grid[i][j].setMinHeight(0);
-                grid[i][j].setWidth(0);
+
                 //each button text contains button id
-                grid[i][j].setText(btn_id);
+                btn.setText(btn_id);
+                //change background to grey
+                btn.setBackgroundColor(Color.rgb(232,232,232));
 
                 //each button listener
-                grid[i][j].setOnClickListener(new View.OnClickListener() {
+                btn.setOnClickListener(new View.OnClickListener() {
                     public void onClick(View view) {
-                        String sendtxt = btn_id+",250,0,0,0";
+                        String sendtxt, hexcolor;
+                        if (colorpicker_color != 0){
+                            sendtxt = btn_id+","+Color.red(colorpicker_color)+","+Color.green(colorpicker_color)+","+Color.blue(colorpicker_color)+",0";
+                            btn.setBackgroundColor(Color.rgb(Color.red(colorpicker_color),Color.green(colorpicker_color),Color.blue(colorpicker_color)));
+                        }else{
+                            sendtxt = btn_id+",250,0,0,0";
+                            btn.setBackgroundColor(Color.rgb(255,0,0));
+                        }
+
                         Log.i("[BLUETOOTH]", "Command:"+sendtxt);
                         //draw color
                         btt.write(sendtxt.getBytes());
 //                        btn.setBackgroundColor(Color.parseColor("#d1431b"));
                     }
                 });
+
+                //add button to array
+                grid[i][j] = btn;
+                //add button to rows view
+                lin.addView(grid[i][j]);
             }
             //add each row into certical list view
             linear.addView(lin);
@@ -301,6 +333,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void connectToMatrix(){
+        //clears button backgrounds on reconnect
+        clearButtonBackgrounds();
         //to eliminate white screen on bootup for few seconds
         new Handler().postDelayed(new Runnable() {
                 public void run() {
@@ -342,11 +376,12 @@ public class MainActivity extends AppCompatActivity {
                           mmSocket.connect();
 
                           //closes snackbar on successful connect
-                          snack_not_connected.dismiss();
+                          if(snack_not_connected != null)snack_not_connected.dismiss();
                           Log.i("[BLUETOOTH]","Connected to: "+mmDevice.getName());
                       }catch(IOException e){
                           try{
-                              mmSocket.close();
+
+                              if(mmSocket != null) mmSocket.close();
 
                               //if not connected snackbar on top
                               snack_not_connected = Snackbar.make(findViewById(R.id.main_view), getString(R.string.not_connected), Snackbar.LENGTH_INDEFINITE);
@@ -395,5 +430,36 @@ public class MainActivity extends AppCompatActivity {
 
 
         }
+    }
+
+    //executes given string array
+    public void drawAnmation(String leds[]){
+        ProgressDialog anim_loading = new ProgressDialog(MainActivity.this);
+        anim_loading.setMessage(getString(R.string.loading_anim));
+        anim_loading.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        anim_loading.show();
+        anim_loading.setCancelable(false);
+
+        //executes each string in array
+        for(String led : leds){
+            Log.i("[BLUETOOTH]", "Command:"+led);
+            btt.write(led.getBytes());
+            try {
+                //adds delay for each command
+                Thread.sleep(1000);
+            } catch (InterruptedException ex) {
+                // code to resume or terminate...
+            }
+        }
+
+        //closes animation dialog
+        anim_loading.dismiss();
+    }
+
+    //clears button backgrounds
+    public void clearButtonBackgrounds(){
+        for(Button butn_row[] : grid)if(grid[0][0] != null)
+            for(Button btn : butn_row)
+                btn.setBackgroundColor(Color.rgb(232,232,232));
     }
 }
