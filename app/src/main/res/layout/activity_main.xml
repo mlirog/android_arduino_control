@@ -43,6 +43,7 @@
                     android:layout_width="0dp"
                     android:layout_height="@dimen/response_size"
                     android:background="#000"
+                    android:isScrollContainer="false"
                     android:padding="20dp"
                     android:textColor="#fff"
                     app:layout_constraintEnd_toEndOf="parent"

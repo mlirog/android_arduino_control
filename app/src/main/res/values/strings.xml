@@ -11,20 +11,20 @@
 
     <string-array
         name="draw_heart">
-        <item>2</item>
+<!--        <item>2</item>-->
         <item>c</item>
-        <item>14,255,0,0,0</item>
-        <item>25,255,0,0,0</item>
+        <item>24,255,0,0,0</item>
         <item>35,255,0,0,0</item>
-        <item>46,255,0,0,0</item>
+        <item>45,255,0,0,0</item>
         <item>56,255,0,0,0</item>
-        <item>65,255,0,0,0</item>
-        <item>54,255,0,0,0</item>
-        <item>63,255,0,0,0</item>
+        <item>66,255,0,0,0</item>
+        <item>75,255,0,0,0</item>
+        <item>64,255,0,0,0</item>
+        <item>73,255,0,0,0</item>
+        <item>62,255,0,0,0</item>
         <item>52,255,0,0,0</item>
-        <item>42,255,0,0,0</item>
+        <item>43,255,0,0,0</item>
         <item>33,255,0,0,0</item>
-        <item>23,255,0,0,0</item>
     </string-array>
 
 </resources>

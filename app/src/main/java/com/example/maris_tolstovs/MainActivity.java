@@ -166,16 +166,16 @@ public class MainActivity extends AppCompatActivity {
                                 case "enter drawing mode" :
                                     //repaint every button to grey
                                     clearButtonBackgrounds();
+                                    changeMatrixStatus(true);
                                     //calls drawing command
-                                    Log.i("[BLUETOOTH]", "Command: 2");
                                     btt.write("2".getBytes());
                                     break;
 
                                 case "clear grid" :
                                     //repaint every button to grey
                                     clearButtonBackgrounds();
+                                    changeMatrixStatus(true);
                                     //calls clear command
-                                    Log.i("[BLUETOOTH]", "Command: c");
                                     btt.write("c".getBytes());
                                     break;
                                 default:
@@ -307,10 +307,13 @@ public class MainActivity extends AppCompatActivity {
                 btn.setOnClickListener(new View.OnClickListener() {
                     public void onClick(View view) {
                         String sendtxt, hexcolor;
+                        //choose color
                         if (colorpicker_color != 0){
+                            //color from colorpicker
                             sendtxt = btn_id+","+Color.red(colorpicker_color)+","+Color.green(colorpicker_color)+","+Color.blue(colorpicker_color)+",0";
                             btn.setBackgroundColor(Color.rgb(Color.red(colorpicker_color),Color.green(colorpicker_color),Color.blue(colorpicker_color)));
                         }else{
+                            //red by default
                             sendtxt = btn_id+",250,0,0,0";
                             btn.setBackgroundColor(Color.rgb(255,0,0));
                         }
@@ -318,7 +321,9 @@ public class MainActivity extends AppCompatActivity {
                         Log.i("[BLUETOOTH]", "Command:"+sendtxt);
                         //draw color
                         btt.write(sendtxt.getBytes());
-//                        btn.setBackgroundColor(Color.parseColor("#d1431b"));
+
+                        //disables grid until recieves msg
+                        changeMatrixStatus(false);
                     }
                 });
 
@@ -409,13 +414,15 @@ public class MainActivity extends AppCompatActivity {
                               //super.handleMessage(msg);
                               if(msg.what == ConnectedThread.RESPONSE_MESSAGE){
                                   String txt = (String)msg.obj;
-                                  if(response.getText().toString().length() >= 40){
+                                  if(response.getText().toString().length() >= 100){
                                       response.setText("");
                                       response.append(txt);
                                   }else{
                                       response.append("\n" + txt);
                                   }
                               }
+                              //enables matrix
+                              changeMatrixStatus(true);
                           }
                       };
 
@@ -446,7 +453,7 @@ public class MainActivity extends AppCompatActivity {
             btt.write(led.getBytes());
             try {
                 //adds delay for each command
-                Thread.sleep(1000);
+                Thread.sleep(1500);
             } catch (InterruptedException ex) {
                 // code to resume or terminate...
             }
@@ -461,5 +468,12 @@ public class MainActivity extends AppCompatActivity {
         for(Button butn_row[] : grid)if(grid[0][0] != null)
             for(Button btn : butn_row)
                 btn.setBackgroundColor(Color.rgb(232,232,232));
+    }
+
+    //clears button backgrounds
+    public void changeMatrixStatus(boolean status){
+        for(Button butn_row[] : grid)if(grid[0][0] != null)
+            for(Button btn : butn_row)
+                btn.setClickable(status);
     }
 }
